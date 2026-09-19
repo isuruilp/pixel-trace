@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body{
+font-family:Inter,Arial,sans-serif;
+width:280px;
+padding:18px;
+background:#111827;
+color:white;
+}
+h2{
+margin:0 0 15px;
+font-size:18px;
+}
+button{
+width:100%;
+padding:12px;
+margin:6px 0;
+border:0;
+border-radius:10px;
+cursor:pointer;
+font-weight:600;
+}
+.primary{background:#2563eb;color:white}
+.secondary{background:#374151;color:white}
+.danger{background:#dc2626;color:white}
+.panel{
+background:#1f2937;
+padding:12px;
+border-radius:12px;
+margin-top:10px;
+}
+.hidden{
+display:none;
+}
+input{
+width:100%;
+}
+.small{
+font-size:12px;
+color:#9ca3af;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎯 Trace Overlay</h2>
+
+<div class="panel">
+
+<button id="manual" class="primary">
+✂ Manual Select Area
+</button>
+
+<button id="auto" class="secondary">
+🖥 Auto Capture Screen
+</button>
+
+</div>
+
+
+<div id="controls" class="panel hidden">
+
+<button id="show" class="primary">
+👁 Show Overlay
+</button>
+
+<button id="hide" class="secondary">
+🙈 Hide Overlay
+</button>
+
+<button id="clear" class="danger">
+🗑 Clear Trace
+</button>
+
+
+<br>
+
+<label>
+Opacity
+</label>
+
+<input id="opacity" type="range" min="10" max="100" value="50">
+
+</div>
+
+
+<p class="small">
+Capture → Switch tab → Compare design
+</p>
+
+
+<script src="popup.js"></script>
+
+</body>
+</html>
