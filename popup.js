@@ -29,6 +29,45 @@ controls.classList.remove("hidden");
 };
 
 
+fullpage.onclick=()=>{
+send("fullpage");
+controls.classList.remove("hidden");
+};
+
+
+// Load a full design image (exported or copied from Figma) as the trace
+function saveImageFile(blob){
+if(!blob || !blob.type.startsWith("image/"))return;
+const reader=new FileReader();
+reader.onload=()=>{
+chrome.storage.local.set(
+{image:reader.result,fullPage:true},
+()=>{
+controls.classList.remove("hidden");
+send("show");
+}
+);
+};
+reader.readAsDataURL(blob);
+}
+
+
+upload.onclick=()=>file.click();
+
+file.onchange=()=>{
+saveImageFile(file.files[0]);
+file.value="";
+};
+
+document.addEventListener("paste",e=>{
+const item=[...e.clipboardData.items].find(i=>i.type.startsWith("image/"));
+if(item){
+e.preventDefault();
+saveImageFile(item.getAsFile());
+}
+});
+
+
 show.onclick=()=>{
 send("show");
 };
