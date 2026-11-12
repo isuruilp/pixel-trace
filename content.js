@@ -41,7 +41,7 @@ document.querySelector("#trace-overlay")?.style.setProperty(
 
 
 if(msg.action==="clear")
-document.querySelector("#trace-overlay")?.remove();
+removeOverlay();
 
 
 if(msg.action==="opacity"){
@@ -666,6 +666,15 @@ fullPage:false
 
 
 
+function removeOverlay(){
+document.querySelector("#trace-overlay")?.remove();
+if(window.__traceOverlayUrl){
+URL.revokeObjectURL(window.__traceOverlayUrl);
+window.__traceOverlayUrl=null;
+}
+}
+
+
 function showOverlay(){
 
 chrome.storage.local.get(
@@ -675,13 +684,21 @@ data=>{
 if(!data.image)return;
 
 
-document.querySelector("#trace-overlay")?.remove();
+removeOverlay();
 
 
 let img=document.createElement("img");
 
 img.id="trace-overlay";
-img.src=data.image;
+img.decoding="async";
+
+// Use a short blob: URL instead of the multi-MB data: URL. A huge data URL in
+// the src attribute makes DevTools (Elements/Styles panel) freeze whenever
+// the DOM is inspected or a style value is edited.
+fetch(data.image).then(r=>r.blob()).then(blob=>{
+window.__traceOverlayUrl=URL.createObjectURL(blob);
+img.src=window.__traceOverlayUrl;
+});
 
 
 Object.assign(
@@ -694,7 +711,10 @@ width:"100vw",
 height:"auto",
 zIndex:"2147483646",
 pointerEvents:"none",
-opacity:"0.5"
+opacity:"0.5",
+// Keep the overlay on its own layer so page style edits don't repaint it
+willChange:"opacity",
+contain:"layout paint"
 }
 );
 
