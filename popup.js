@@ -1,6 +1,6 @@
 const controls=document.getElementById("controls");
 
-function send(action,data={}){
+function send(action,data={},callback){
 chrome.tabs.query(
 {active:true,currentWindow:true},
 tabs=>{
@@ -8,12 +8,24 @@ chrome.scripting.executeScript({
 target:{tabId:tabs[0].id},
 files:["content.js"]
 },()=>{
+if(chrome.runtime.lastError)return;   // e.g. chrome:// pages
 chrome.tabs.sendMessage(
 tabs[0].id,
-{action,...data}
+{action,...data},
+res=>{
+void chrome.runtime.lastError;   // no response expected for most actions
+if(callback)callback(res);
+}
 );
 });
 });
+}
+
+
+// Show / Hide toggle button
+function setToggleLabel(visible){
+toggle.textContent=visible?"🙈 Hide Overlay":"👁 Show Overlay";
+toggle.className=visible?"secondary":"primary";
 }
 
 
@@ -45,6 +57,7 @@ chrome.storage.local.set(
 ()=>{
 controls.classList.remove("hidden");
 send("show");
+setToggleLabel(true);
 }
 );
 };
@@ -68,13 +81,10 @@ saveImageFile(item.getAsFile());
 });
 
 
-show.onclick=()=>{
-send("show");
-};
-
-
-hide.onclick=()=>{
-send("hide");
+toggle.onclick=()=>{
+send("toggle",{},res=>{
+if(res)setToggleLabel(res.visible);
+});
 };
 
 
@@ -85,6 +95,7 @@ send("resetPosition");
 
 clear.onclick=()=>{
 send("clear");
+setToggleLabel(false);
 controls.classList.add("hidden");
 };
 
@@ -104,6 +115,10 @@ chrome.storage.local.get(
 data=>{
 if(data.image){
 controls.classList.remove("hidden");
+// Show the right label when the popup opens
+send("status",{},res=>{
+if(res)setToggleLabel(res.visible);
+});
 }
 }
 );

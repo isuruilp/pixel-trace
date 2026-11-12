@@ -10,7 +10,33 @@ if(window.__traceListener){
 try{chrome.runtime.onMessage.removeListener(window.__traceListener);}catch(e){}
 }
 
-window.__traceListener=msg=>{
+window.__traceListener=(msg,sender,sendResponse)=>{
+
+
+const overlayVisible=()=>{
+const o=document.querySelector("#trace-overlay");
+return !!o && o.style.display!=="none";
+};
+
+
+if(msg.action==="toggle"){
+if(overlayVisible()){
+document.querySelector("#trace-overlay").style.setProperty("display","none");
+sendResponse({visible:false});
+}else{
+const o=document.querySelector("#trace-overlay");
+if(o)o.style.removeProperty("display");
+else showOverlay();
+sendResponse({visible:true});
+}
+return;
+}
+
+
+if(msg.action==="status"){
+sendResponse({visible:overlayVisible()});
+return;
+}
 
 
 if(msg.action==="manual")
