@@ -40,8 +40,14 @@ document.querySelector("#trace-overlay")?.style.setProperty(
 );
 
 
-if(msg.action==="clear")
+if(msg.action==="clear"){
 removeOverlay();
+window.__traceOffset={x:0,y:0};
+}
+
+
+if(msg.action==="resetPosition")
+resetOffset();
 
 
 if(msg.action==="opacity"){
@@ -53,6 +59,130 @@ img.style.opacity=msg.value;
 };
 
 chrome.runtime.onMessage.addListener(window.__traceListener);
+
+
+
+// ---- Ctrl + drag: move only the overlay (page does not scroll) ----
+// Ctrl + drag        = move overlay up/down
+// Ctrl + Shift + drag = move overlay freely (up/down/left/right)
+
+if(!window.__traceOffset)window.__traceOffset={x:0,y:0};
+
+function applyOffset(img){
+img=img||document.querySelector("#trace-overlay");
+if(img)img.style.transform=`translate(${window.__traceOffset.x}px,${window.__traceOffset.y}px)`;
+}
+
+function resetOffset(){
+window.__traceOffset={x:0,y:0};
+applyOffset();
+}
+
+if(window.__traceDragCleanup)window.__traceDragCleanup();
+
+{
+
+let drag=null;
+let suppressClick=false;
+let cursorStyle=null;
+
+const visibleOverlay=()=>{
+const o=document.querySelector("#trace-overlay");
+return o && o.style.display!=="none" ? o : null;
+};
+
+const setCursor=c=>{
+if(!c){cursorStyle?.remove();cursorStyle=null;return;}
+if(!cursorStyle){
+cursorStyle=document.createElement("style");
+document.documentElement.appendChild(cursorStyle);
+}
+cursorStyle.textContent=`*{cursor:${c}!important;user-select:none!important}`;
+};
+
+const onKeyDown=e=>{
+if(e.key==="Control" && !drag && visibleOverlay())setCursor("grab");
+};
+
+const onKeyUp=e=>{
+if(e.key==="Control" && !drag)setCursor(null);
+};
+
+const onDown=e=>{
+if(!e.ctrlKey || e.button!==0 || !visibleOverlay())return;
+e.preventDefault();
+e.stopPropagation();
+drag={
+sx:e.clientX,
+sy:e.clientY,
+ox:window.__traceOffset.x,
+oy:window.__traceOffset.y,
+moved:false
+};
+setCursor("grabbing");
+};
+
+const onMove=e=>{
+if(!drag)return;
+e.preventDefault();
+e.stopPropagation();
+const dx=e.clientX-drag.sx;
+const dy=e.clientY-drag.sy;
+if(Math.abs(dx)+Math.abs(dy)>2)drag.moved=true;
+window.__traceOffset={
+x:e.shiftKey ? drag.ox+dx : drag.ox,
+y:drag.oy+dy
+};
+applyOffset();
+};
+
+const onUp=e=>{
+if(!drag)return;
+e.preventDefault();
+e.stopPropagation();
+// Ctrl+click on a link would otherwise open it in a new tab
+suppressClick=true;
+setTimeout(()=>suppressClick=false,0);
+drag=null;
+setCursor(e.ctrlKey && visibleOverlay() ? "grab" : null);
+};
+
+const onClick=e=>{
+if(!suppressClick)return;
+e.preventDefault();
+e.stopPropagation();
+suppressClick=false;
+};
+
+const onBlur=()=>{
+drag=null;
+setCursor(null);
+};
+
+const opts={capture:true};
+const passiveOff={capture:true,passive:false};
+window.addEventListener("keydown",onKeyDown,opts);
+window.addEventListener("keyup",onKeyUp,opts);
+window.addEventListener("mousedown",onDown,passiveOff);
+window.addEventListener("mousemove",onMove,passiveOff);
+window.addEventListener("mouseup",onUp,passiveOff);
+window.addEventListener("click",onClick,passiveOff);
+window.addEventListener("auxclick",onClick,passiveOff);
+window.addEventListener("blur",onBlur);
+
+window.__traceDragCleanup=()=>{
+window.removeEventListener("keydown",onKeyDown,opts);
+window.removeEventListener("keyup",onKeyUp,opts);
+window.removeEventListener("mousedown",onDown,passiveOff);
+window.removeEventListener("mousemove",onMove,passiveOff);
+window.removeEventListener("mouseup",onUp,passiveOff);
+window.removeEventListener("click",onClick,passiveOff);
+window.removeEventListener("auxclick",onClick,passiveOff);
+window.removeEventListener("blur",onBlur);
+setCursor(null);
+};
+
+}
 
 
 
@@ -713,10 +843,13 @@ zIndex:"2147483646",
 pointerEvents:"none",
 opacity:"0.5",
 // Keep the overlay on its own layer so page style edits don't repaint it
-willChange:"opacity",
+willChange:"opacity, transform",
 contain:"layout paint"
 }
 );
+
+// Keep any Ctrl+drag position from before
+applyOffset(img);
 
 
 if(data.fullPage){

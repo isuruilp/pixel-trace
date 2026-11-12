@@ -78,6 +78,11 @@ send("hide");
 };
 
 
+resetPosition.onclick=()=>{
+send("resetPosition");
+};
+
+
 clear.onclick=()=>{
 send("clear");
 controls.classList.add("hidden");
